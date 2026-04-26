@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>いくつと いくつ?</title>
+<style>
+:root {
+  --bg: #fff5e9;
+  --primary: #ff8a8a;
+  --primary-dark: #e66e6e;
+  --accent: #ffd166;
+  --text: #5a4a3f;
+  --plate-left: #d4f1c5;
+  --plate-right: #c5e3f1;
+  --plate-tray: #f5e3d8;
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-strong: 0 6px 20px rgba(0,0,0,.15);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: 'Hiragino Maru Gothic ProN', 'YuGothic', 'Meiryo', sans-serif;
+  overflow-x: hidden;
+}
+
+.screen { display: none; padding: 16px; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* ===== Menu ===== */
+#menu h1 {
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  text-align: center;
+  color: var(--primary);
+  margin: 16px 0 8px;
+  text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(255,138,138,.2);
+}
+#menu .subtitle {
+  text-align: center;
+  font-size: 1rem;
+  color: #999;
+  margin-bottom: 24px;
+}
+.section-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 22px 0 12px;
+  color: var(--text);
+}
+.options {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+  max-width: 720px; margin: 0 auto;
+}
+.option-btn {
+  background: white;
+  border: 4px solid #eee;
+  border-radius: 18px;
+  padding: 12px 18px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform .15s, border-color .15s, background .15s;
+  min-width: 70px;
+  box-shadow: var(--shadow);
+  font-family: inherit;
+}
+.option-btn:active { transform: scale(.96); }
+.option-btn.selected {
+  border-color: var(--primary);
+  background: #ffe5e5;
+}
+.option-btn.disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.option-btn .emoji { font-size: 2rem; display: block; line-height: 1.1; }
+.option-btn .label { font-size: .85rem; display: block; margin-top: 2px; }
+
+#start-btn {
+  display: block; margin: 32px auto 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 18px 56px;
+  font-size: 1.7rem;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: var(--shadow-strong);
+  font-family: inherit;
+}
+#start-btn:active { transform: scale(.97); }
+
+/* ===== Game ===== */
+.top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.icon-btn {
+  background: white;
+  border: 3px solid #ddd;
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  font-family: inherit;
+  color: var(--text);
+}
+
+.question-area {
+  text-align: center;
+  margin: 8px 0 14px;
+}
+.question-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.total-items {
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+  opacity: .55;
+}
+
+.plates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.plates.one-plate { grid-template-columns: 1fr; max-width: 520px; }
+.plates.one-plate .plate.right { display: none; }
+
+.plate {
+  border: 4px dashed #b8b8b8;
+  border-radius: 26px;
+  min-height: 170px;
+  padding: 28px 14px 36px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  transition: border-color .15s, transform .15s, background .15s;
+  cursor: pointer;
+}
+.plate.left { background: var(--plate-left); }
+.plate.right { background: var(--plate-right); }
+.plate.tray { background: var(--plate-tray); min-height: 110px; padding: 22px 14px 14px; }
+.plate.drag-over {
+  border-color: var(--primary);
+  border-style: solid;
+  transform: scale(1.02);
+}
+
+.plate-label {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: white;
+  padding: 4px 16px;
+  border-radius: 18px;
+  font-weight: bold;
+  font-size: 1rem;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.plate-count {
+  position: absolute; bottom: 8px; right: 14px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: rgba(255,255,255,.7);
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.tray-wrap { max-width: 760px; margin: 14px auto 0; }
+
+.item {
+  font-size: 2.6rem;
+  cursor: grab;
+  touch-action: none;
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .12s;
+  line-height: 1;
+}
+.item:active { cursor: grabbing; }
+.item.locked {
+  cursor: default;
+  opacity: .6;
+  filter: grayscale(.3);
+  position: relative;
+}
+.item.locked::after {
+  content: '🎀';
+  position: absolute;
+  top: -6px; right: -6px;
+  font-size: 1rem;
+  filter: none;
+}
+.item.dragging {
+  pointer-events: none;
+  transform: scale(1.2);
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,.25));
+}
+.item.selected {
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 14px gold);
+  animation: bounce 0.5s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: scale(1.18) translateY(0); }
+  50% { transform: scale(1.2) translateY(-4px); }
+}
+
+/* ===== Formula ===== */
+.formula {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 20px auto 12px;
+  background: white;
+  padding: 14px 20px;
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.num-box {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  min-width: 56px; height: 56px;
+  background: var(--accent);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 0 8px;
+  font-size: 2.2rem;
+  box-shadow: 0 3px 0 #d4a82d;
+}
+.num-box.left-color { background: #b8e29c; box-shadow: 0 3px 0 #8cb874; }
+.num-box.right-color { background: #9cd0e2; box-shadow: 0 3px 0 #74a8b8; }
+.num-box.blank {
+  background: white;
+  border: 4px dashed var(--primary);
+  color: var(--primary);
+  box-shadow: none;
+}
+.num-box.correct { background: #b5e8a3; box-shadow: 0 3px 0 #74b85a; }
+.num-box.streak-on {
+  background: linear-gradient(135deg, #ffe27a, #ffb347) !important;
+  color: #6e4a00 !important;
+  box-shadow: 0 0 14px rgba(255,180,0,.7), 0 3px 0 #c8861f !important;
+  animation: shineGold 1.4s ease-in-out infinite;
+  border: none !important;
+}
+@keyframes shineGold {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.18) saturate(1.25); }
+}
+
+.streak-display {
+  text-align: center;
+  margin: 4px 0 8px;
+  min-height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.streak-display .dots-label {
+  font-size: .9rem;
+  font-weight: bold;
+  color: #888;
+  margin-right: 4px;
+}
+.streak-display .dot {
+  font-size: 1.6rem;
+  display: inline-block;
+  filter: grayscale(.4);
+  opacity: .6;
+  transition: transform .2s;
+}
+.streak-display .dot.filled {
+  filter: none;
+  opacity: 1;
+  animation: starPop .5s ease-out;
+}
+@keyframes starPop {
+  0% { transform: scale(0) rotate(-180deg); }
+  60% { transform: scale(1.5) rotate(20deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.streak-display.hot .dot.filled {
+  animation: starPop .5s ease-out, shineGold 1.2s ease-in-out infinite .5s;
+  text-shadow: 0 0 8px gold;
+}
+.practice-streak {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #ff6b35;
+}
+.streak-display.hot .practice-streak {
+  color: #d33;
+  text-shadow: 0 0 8px gold;
+}
+
+/* メニューのクリア済みボタン */
+.option-btn.cleared {
+  background: linear-gradient(135deg, #fff2c4, #ffd97a);
+  border-color: #d8a841;
+  color: #6e4a00;
+  position: relative;
+}
+.option-btn.cleared::before {
+  content: '✓';
+  position: absolute;
+  top: -8px; right: -8px;
+  background: #4caf50;
+  color: white;
+  border-radius: 50%;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  border: 2px solid white;
+}
+.option-btn.just-cleared {
+  animation: clearPop 1.6s ease-out;
+}
+@keyframes clearPop {
+  0% { transform: scale(1); box-shadow: var(--shadow); }
+  20% { transform: scale(1.5); box-shadow: 0 0 30px gold, 0 0 60px gold; }
+  50% { transform: scale(0.95); }
+  70% { transform: scale(1.15); box-shadow: 0 0 20px gold; }
+  100% { transform: scale(1); box-shadow: var(--shadow); }
+}
+
+.read-btn {
+  display: block; margin: 0 auto;
+  background: var(--accent);
+  border: none;
+  padding: 12px 32px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 26px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-family: inherit;
+}
+.read-btn:active { transform: scale(.96); }
+
+.answer-btn {
+  display: block; margin: 4px auto 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 16px 56px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  border-radius: 32px;
+  cursor: pointer;
+  box-shadow: var(--shadow-strong);
+  font-family: inherit;
+  transition: transform .1s;
+}
+.answer-btn:active { transform: scale(.96); }
+.answer-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+.formula.shake { animation: shake .5s ease-in-out; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+.wrong-toast, .hint-toast {
+  position: fixed; top: 30%; left: 50%;
+  padding: 16px 32px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  border-radius: 26px;
+  box-shadow: var(--shadow-strong);
+  z-index: 9999;
+  animation: toastIn .25s ease-out, toastOut .25s ease-in 1.4s forwards;
+  white-space: nowrap;
+}
+.wrong-toast {
+  background: rgba(255, 220, 220, .98);
+  color: #a83838;
+  border: 3px solid #f4b5b5;
+}
+.hint-toast {
+  background: rgba(255, 250, 220, .98);
+  color: #8b6a3a;
+  border: 3px solid #f4d59e;
+}
+@keyframes toastIn {
+  0% { opacity: 0; transform: translate(-50%, -10px) scale(.9); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes toastOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+
+/* ===== Collection ===== */
+.collection-wrap {
+  max-width: 760px;
+  margin: 24px auto 16px;
+}
+.collection-title {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #888;
+  margin-bottom: 8px;
+}
+.collection {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+}
+.combo-card {
+  background: white;
+  border: 3px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  opacity: .35;
+  transition: all .3s;
+  white-space: nowrap;
+}
+.combo-card.found {
+  opacity: 1;
+  border-color: var(--accent);
+  background: #fff5cc;
+  transform: scale(1.05);
+}
+
+/* ===== Celebration ===== */
+.celebrate {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 6rem;
+  pointer-events: none;
+  animation: pop 1.1s ease-out forwards;
+  z-index: 9999;
+}
+@keyframes pop {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-30deg); opacity: 1; }
+  40% { transform: translate(-50%, -50%) scale(1.4) rotate(10deg); }
+  70% { transform: translate(-50%, -50%) scale(1.1) rotate(-5deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 0; }
+}
+
+.confetti {
+  position: fixed; top: -20px;
+  font-size: 1.5rem; pointer-events: none; z-index: 9998;
+  animation: fall 2s linear forwards;
+}
+@keyframes fall {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Next button (after correct in quiz) */
+.next-btn {
+  display: block;
+  margin: 12px auto 0;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 14px 36px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  font-family: inherit;
+}
+.next-btn:active { transform: scale(.96); }
+
+@media (max-width: 600px) {
+  .plates { grid-template-columns: 1fr; }
+  .formula { font-size: 1.5rem; padding: 12px; }
+  .num-box { min-width: 44px; height: 44px; font-size: 1.7rem; }
+  .item { font-size: 2.2rem; width: 48px; height: 48px; }
+  .question-text { font-size: 1.2rem; }
+  /* 穴6対策: スマホ縦でメニューが収まるよう全体を圧縮 */
+  .screen { padding: 10px; }
+  #menu h1 { font-size: 1.8rem; margin: 4px 0 0; }
+  #menu .subtitle { margin-bottom: 8px; font-size: .9rem; }
+  .section-title { margin: 12px 0 6px; font-size: 1.05rem; }
+  .options { gap: 6px; }
+  .option-btn { padding: 8px 12px; font-size: 1.15rem; min-width: 56px; border-radius: 14px; border-width: 3px; }
+  .option-btn .emoji { font-size: 1.6rem; }
+  .option-btn .label { font-size: .75rem; }
+  #start-btn { margin: 16px auto 8px; padding: 14px 40px; font-size: 1.4rem; }
+  .answer-btn { padding: 14px 44px; font-size: 1.25rem; }
+  .wrong-toast { font-size: 1.05rem; padding: 12px 22px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Menu Screen ===== -->
+<div id="menu" class="screen active">
+  <h1>いくつと いくつ?</h1>
+  <p class="subtitle">かずを わけて みよう!</p>
+
+  <div class="section-title">⭐ モード</div>
+  <div class="options" id="mode-options">
+    <button class="option-btn selected" data-mode="free">
+      <span class="emoji">🤲</span>
+      <span class="label">わけてみよう</span>
+    </button>
+    <button class="option-btn" data-mode="practice">
+      <span class="emoji">✏️</span>
+      <span class="label">れんしゅう</span>
+    </button>
+    <button class="option-btn" data-mode="test">
+      <span class="emoji">🏆</span>
+      <span class="label">テスト</span>
+    </button>
+  </div>
+
+  <div class="section-title">⭐ かず</div>
+  <div class="options" id="num-options">
+    <button class="option-btn" data-num="3">3</button>
+    <button class="option-btn" data-num="4">4</button>
+    <button class="option-btn selected" data-num="5">5</button>
+    <button class="option-btn" data-num="6">6</button>
+    <button class="option-btn" data-num="7">7</button>
+    <button class="option-btn" data-num="8">8</button>
+    <button class="option-btn" data-num="9">9</button>
+    <button class="option-btn" data-num="10">10</button>
+  </div>
+
+  <div class="section-title">⭐ なにを わける?</div>
+  <div class="options" id="theme-options">
+    <button class="option-btn selected" data-theme="🍪" data-name="クッキー" data-context="おともだちと わけよう">
+      <span class="emoji">🍪</span>
+      <span class="label">クッキー</span>
+    </button>
+    <button class="option-btn" data-theme="🍩" data-name="ドーナツ" data-context="きょうだいで わけよう">
+      <span class="emoji">🍩</span>
+      <span class="label">ドーナツ</span>
+    </button>
+    <button class="option-btn" data-theme="🍓" data-name="いちご" data-context="おうちで わけよう">
+      <span class="emoji">🍓</span>
+      <span class="label">いちご</span>
+    </button>
+    <button class="option-btn" data-theme="🍬" data-name="あめ" data-context="ともだちに あげよう">
+      <span class="emoji">🍬</span>
+      <span class="label">あめ</span>
+    </button>
+    <button class="option-btn" data-theme="🍊" data-name="みかん" data-context="かぞくで わけよう">
+      <span class="emoji">🍊</span>
+      <span class="label">みかん</span>
+    </button>
+    <button class="option-btn" data-theme="🍰" data-name="ケーキ" data-context="パーティーで わけよう">
+      <span class="emoji">🍰</span>
+      <span class="label">ケーキ</span>
+    </button>
+  </div>
+
+  <button id="start-btn">▶ スタート!</button>
+</div>
+
+<!-- ===== Game Screen ===== -->
+<div id="game" class="screen">
+  <div class="top-bar">
+    <button class="icon-btn" onclick="goMenu()">← もどる</button>
+    <div style="display:flex; gap:8px;">
+      <button class="icon-btn" onclick="resetGame()">🔄 やりなおし</button>
+      <button class="icon-btn" id="sound-toggle" onclick="toggleSound()">🔊 おと</button>
+    </div>
+  </div>
+
+  <div class="question-area">
+    <div class="question-text" id="question-text"></div>
+    <div class="total-items" id="total-items"></div>
+    <div class="streak-display" id="streak-display"></div>
+  </div>
+
+  <div class="plates" id="plates">
+    <div class="plate left" data-plate="left">
+      <div class="plate-label" id="left-label">ひだりの おさら</div>
+      <div class="plate-count" id="left-count">0こ</div>
+    </div>
+    <div class="plate right" data-plate="right">
+      <div class="plate-label" id="right-label">みぎの おさら</div>
+      <div class="plate-count" id="right-count">0こ</div>
+    </div>
+  </div>
+
+  <div class="tray-wrap" id="tray-wrap" style="display:none;">
+    <div class="plate tray" data-plate="tray">
+      <div class="plate-label">ざいりょう</div>
+      <div class="plate-count" id="tray-count">0こ</div>
+    </div>
+  </div>
+
+  <div class="formula" id="formula"></div>
+  <button id="answer-btn" class="answer-btn" onclick="checkAnswer()">✓ こたえる!</button>
+  <button class="read-btn" onclick="readAloud()">🔊 よみあげ</button>
+
+  <div class="collection-wrap" id="collection-wrap">
+    <div class="collection-title">あつめた くみあわせ</div>
+    <div class="collection" id="collection"></div>
+  </div>
+</div>
+
+<script>
+// ===== State =====
+const state = {
+  mode: 'free',
+  total: 5,
+  theme: '🍪',
+  themeName: 'クッキー',
+  context: '',
+  items: [],
+  found: new Set(),
+  soundOn: true,
+  quizGiven: 0,
+  quizAnswer: 0,
+  quizDone: false,
+  userInteracted: false,   // 穴1対策: 初期描画では found に追加しない
+  nextTimer: null,         // 穴3対策: 自動次問題タイマーを保持
+  lastQuizGiven: null,     // 穴7対策: 同じ問題の連続を避ける
+  lastTenGiven: null,
+  streak: 0,               // 連続正解数(3で合格)
+  selectedItemId: null,    // 穴11: タップ選択中のアイテムID
+  cleared: new Set(),      // クリア済みキー: "quiz-5", "ten" など
+  answerLock: false,
+  readingNow: false
+};
+
+// ===== Cleared 永続化 =====
+function saveCleared() {
+  try { localStorage.setItem('numbun-cleared', JSON.stringify([...state.cleared])); } catch(e) {}
+}
+function loadCleared() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('numbun-cleared') || '[]');
+    state.cleared = new Set(arr);
+  } catch(e) { state.cleared = new Set(); }
+}
+function renderMenuCleared() {
+  document.querySelectorAll('#num-options .option-btn').forEach(btn => {
+    const n = parseInt(btn.dataset.num);
+    btn.classList.toggle('cleared', state.cleared.has(`quiz-${n}`));
+  });
+}
+
+// ===== Sound =====
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq, dur, type, vol, delay) {
+  if (!state.soundOn || !audioCtx) return;
+  const start = audioCtx.currentTime + (delay || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(start); osc.stop(start + dur + 0.05);
+}
+function soundPickup() { tone(660, 0.08, 'sine', 0.18, 0); }
+function soundDrop()   { tone(440, 0.1,  'sine', 0.18, 0); tone(550, 0.08, 'sine', 0.12, 0.04); }
+function soundCorrect() {
+  tone(523, 0.12, 'triangle', 0.22, 0);
+  tone(659, 0.12, 'triangle', 0.22, 0.12);
+  tone(784, 0.18, 'triangle', 0.22, 0.24);
+  tone(1047,0.28, 'triangle', 0.20, 0.42);
+}
+function soundCombo() {
+  tone(700, 0.06, 'sine', 0.15, 0);
+  tone(900, 0.06, 'sine', 0.15, 0.06);
+}
+
+// ===== Menu wiring =====
+document.querySelectorAll('#mode-options .option-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#mode-options .option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    state.mode = btn.dataset.mode;
+  };
+});
+document.querySelectorAll('#num-options .option-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#num-options .option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    state.total = parseInt(btn.dataset.num);
+  };
+});
+document.querySelectorAll('#theme-options .option-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#theme-options .option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    state.theme = btn.dataset.theme;
+    state.themeName = btn.dataset.name;
+    state.context = btn.dataset.context;
+  };
+});
+document.getElementById('start-btn').onclick = () => {
+  ensureAudio();
+  const sel = document.querySelector('#theme-options .option-btn.selected');
+  state.theme = sel.dataset.theme;
+  state.themeName = sel.dataset.name;
+  state.context = sel.dataset.context;
+  startGame();
+};
+
+// ===== Game setup =====
+function startGame() {
+  state.found = new Set();
+  state.quizDone = false;
+  state.userInteracted = false;
+  state.streak = 0;
+  if (state.nextTimer) { clearTimeout(state.nextTimer); state.nextTimer = null; }
+
+  if (state.mode === 'test' || state.mode === 'practice') setupQuiz();
+  else setupFree();
+
+  document.getElementById('menu').classList.remove('active');
+  document.getElementById('game').classList.add('active');
+  render();
+}
+
+function setupFree() {
+  state.items = [];
+  for (let i = 0; i < state.total; i++) {
+    state.items.push({ id: i, plate: 'left', locked: false });
+  }
+}
+
+function setupQuiz() {
+  state.items = [];
+  if (state.mode === 'practice') {
+    // れんしゅう: 全部 ざいりょうから、おともだちと自分に自由に分ける
+    state.quizGiven = 0;
+    state.quizAnswer = 0;
+    for (let i = 0; i < state.total; i++) {
+      state.items.push({ id: i, plate: 'tray', locked: false });
+    }
+    return;
+  }
+  // テスト: 「Nは Aと □」のAをランダム生成。0や全部にならない
+  // 穴7対策: 直前と同じAは避ける
+  let a;
+  const choices = state.total - 1;
+  do {
+    a = Math.floor(Math.random() * choices) + 1;
+  } while (a === state.lastQuizGiven && choices > 1);
+  state.lastQuizGiven = a;
+  state.quizGiven = a;
+  state.quizAnswer = state.total - a;
+  // ロック済みの「あいて」分
+  for (let i = 0; i < a; i++) {
+    state.items.push({ id: i, plate: 'left', locked: true });
+  }
+  // ざいりょう = 答え + 予備2個 (考えてから取らないと正解できない)。tray は最大7個
+  const distractors = Math.max(0, Math.min(2, 7 - state.quizAnswer));
+  const supplyCount = state.quizAnswer + distractors;
+  for (let i = 0; i < supplyCount; i++) {
+    state.items.push({ id: a + i, plate: 'tray', locked: false });
+  }
+}
+
+function resetGame() {
+  // 穴17: ストリーク継続中の誤押を確認
+  if (state.streak >= 2 && !confirm(`れんぞく ${state.streak}もん クリアちゅう! やりなおしますか?`)) return;
+  // 穴3対策: 保留中の自動次問題タイマーをキャンセル
+  if (state.nextTimer) { clearTimeout(state.nextTimer); state.nextTimer = null; }
+  state.quizDone = false;
+  state.userInteracted = false;
+  state.streak = 0;
+  state.selectedItemId = null;
+  if (state.mode === 'test' || state.mode === 'practice') setupQuiz();
+  else setupFree();
+  render();
+}
+
+function goMenu() {
+  // 穴17: ストリーク継続中の誤押を確認
+  if (state.streak >= 2 && !confirm(`れんぞく ${state.streak}もん クリアちゅう! メニューに もどりますか?`)) return;
+  // 穴3対策: 保留中タイマーをキャンセル
+  if (state.nextTimer) { clearTimeout(state.nextTimer); state.nextTimer = null; }
+  // ドラッグ/選択を後始末
+  state.selectedItemId = null;
+  if (dragging) {
+    const el = dragging.el;
+    el.classList.remove('dragging');
+    el.style.position = ''; el.style.left = ''; el.style.top = ''; el.style.zIndex = '';
+    dragging = null;
+  }
+  dragStart = null;
+  document.removeEventListener('pointermove', onPointerMove);
+  document.removeEventListener('pointerup', onPointerUp);
+  document.removeEventListener('pointercancel', onPointerUp);
+  document.getElementById('game').classList.remove('active');
+  document.getElementById('menu').classList.add('active');
+  speechSynthesis && speechSynthesis.cancel();
+}
+
+// ===== Render =====
+function render() {
+  const platesEl = document.getElementById('plates');
+  const trayWrap = document.getElementById('tray-wrap');
+  const totalItemsEl = document.getElementById('total-items');
+  const questionTextEl = document.getElementById('question-text');
+  const colWrap = document.getElementById('collection-wrap');
+
+  // Mode-specific UI
+  if (state.mode === 'free') {
+    questionTextEl.textContent = `${state.theme} を ${state.total}こ わけてみよう`;
+    totalItemsEl.textContent = state.theme.repeat(state.total);
+    totalItemsEl.style.display = '';
+    trayWrap.style.display = 'none';
+    platesEl.classList.remove('one-plate');
+    colWrap.style.display = '';
+    document.getElementById('left-label').textContent = 'ひだり';
+    document.getElementById('right-label').textContent = 'みぎ';
+  } else if (state.mode === 'practice') {
+    questionTextEl.textContent = `✏️ れんしゅう: ${state.theme} ${state.total}こを おともだちと わけよう!`;
+    totalItemsEl.style.display = 'none';
+    trayWrap.style.display = '';
+    platesEl.classList.remove('one-plate');
+    colWrap.style.display = '';
+    document.getElementById('left-label').textContent = 'おともだち';
+    document.getElementById('right-label').textContent = 'じぶん';
+  } else if (state.mode === 'test') {
+    questionTextEl.textContent = `🏆 テスト: ぜんぶで ${state.total}こ にしよう!`;
+    totalItemsEl.style.display = 'none';
+    trayWrap.style.display = '';
+    platesEl.classList.remove('one-plate');
+    colWrap.style.display = 'none';
+    document.getElementById('left-label').textContent = `おともだち (${state.quizGiven}こ)`;
+    document.getElementById('right-label').textContent = 'じぶん';
+  }
+
+  // Clear plates of items
+  document.querySelectorAll('.plate .item').forEach(el => el.remove());
+
+  // Render items
+  state.items.forEach(item => {
+    const plateEl = document.querySelector(`.plate[data-plate="${item.plate}"]`);
+    if (!plateEl) return;
+    const el = document.createElement('div');
+    el.className = 'item';
+    if (item.locked) el.classList.add('locked');
+    if (state.selectedItemId === item.id) el.classList.add('selected');
+    el.dataset.id = item.id;
+    el.textContent = state.theme;
+    plateEl.appendChild(el);
+    if (!item.locked) {
+      el.addEventListener('pointerdown', onPointerDown);
+    }
+  });
+  // 皿クリック → 選択中アイテムを移動 (穴11)
+  document.querySelectorAll('.plate').forEach(p => { p.onclick = onPlateClick; });
+
+  // Counts
+  ['left', 'right', 'tray'].forEach(p => {
+    const elc = document.getElementById(p + '-count');
+    if (!elc) return;
+    const n = state.items.filter(i => i.plate === p).length;
+    elc.textContent = n + 'こ';
+  });
+
+  // テスト進捗(星3つ)
+  renderStreakDots();
+
+  // 「こたえる」ボタンはテストモードのみ。れんしゅうは自由探索
+  const answerBtn = document.getElementById('answer-btn');
+  if (state.mode === 'test') {
+    answerBtn.style.display = '';
+    answerBtn.disabled = !!state.quizDone;
+  } else {
+    answerBtn.style.display = 'none';
+  }
+
+  // Formula
+  renderFormula();
+
+  // Collection (free と practice)
+  if (state.mode === 'free' || state.mode === 'practice') renderCollection();
+}
+
+function renderFormula() {
+  const left = state.items.filter(i => i.plate === 'left').length;
+  const right = state.items.filter(i => i.plate === 'right').length;
+  const f = document.getElementById('formula');
+  // 3問連続クリア中なら数字を金色に
+  const sk = state.streak >= 3 ? ' streak-on' : '';
+
+  if (state.mode === 'free') {
+    const allUsed = (left + right === state.total);
+    const key = `${left}-${right}`;
+    f.innerHTML = `
+      <span class="num-box${sk}">${state.total}</span>
+      <span>は</span>
+      <span class="num-box left-color${sk}">${left}</span>
+      <span>と</span>
+      <span class="num-box right-color${sk}">${right}</span>
+    `;
+    if (state.userInteracted && allUsed && !state.found.has(key)) {
+      state.found.add(key);
+      soundCombo();
+      flashCelebration('✨');
+    }
+  } else if (state.mode === 'practice') {
+    // れんしゅう: わけてみよう同様、リアルタイムに数式更新+コレクション蓄積
+    const trayCount = state.items.filter(i => i.plate === 'tray').length;
+    const allUsed = (left + right === state.total);
+    const key = `${left}-${right}`;
+    f.innerHTML = `
+      <span class="num-box">${state.total}</span>
+      <span>は</span>
+      <span class="num-box left-color">${left}</span>
+      <span>と</span>
+      <span class="num-box right-color">${right}</span>
+      ${trayCount > 0 ? `<span style="font-size:.9rem;color:#888;">(ざいりょう ${trayCount}こ)</span>` : ''}
+    `;
+    if (state.userInteracted && allUsed && !state.found.has(key)) {
+      state.found.add(key);
+      soundCombo();
+      flashCelebration('✨');
+    }
+  } else if (state.mode === 'test') {
+    // 「こたえる」ボタンを押すまで判定しない。表示中は青(blank)、正解確定後だけgreen
+    const showCorrect = state.quizDone;
+    f.innerHTML = `
+      <span class="num-box${sk}">${state.total}</span>
+      <span>は</span>
+      <span class="num-box left-color${sk}">${state.quizGiven}</span>
+      <span>と</span>
+      <span class="num-box ${showCorrect ? 'correct' : 'blank'}${sk}">${right}</span>
+    `;
+  }
+}
+
+function renderCollection() {
+  const col = document.getElementById('collection');
+  col.innerHTML = '';
+  for (let i = 0; i <= state.total; i++) {
+    const j = state.total - i;
+    const key = `${i}-${j}`;
+    const card = document.createElement('div');
+    card.className = 'combo-card' + (state.found.has(key) ? ' found' : '');
+    card.textContent = `${i}と${j}`;
+    col.appendChild(card);
+  }
+}
+
+// テスト進捗(★3つ) / れんしゅうは連続数表示
+function renderStreakDots() {
+  const el = document.getElementById('streak-display');
+  if (!el) return;
+  if (state.mode === 'test') {
+    let html = '<span class="dots-label">テスト</span>';
+    for (let i = 0; i < 3; i++) {
+      const filled = i < state.streak;
+      html += `<span class="dot ${filled ? 'filled' : ''}">${filled ? '⭐' : '☆'}</span>`;
+    }
+    el.innerHTML = html;
+    el.classList.toggle('hot', state.streak >= 3);
+  } else {
+    el.innerHTML = '';
+    el.classList.remove('hot');
+  }
+}
+
+// 「こたえる」ボタンが押されたとき
+function checkAnswer() {
+  if (state.quizDone) return; // 既に正解済み
+  // 穴9対策: 連打クールダウン
+  if (state.answerLock) return;
+  ensureAudio();
+  const right = state.items.filter(i => i.plate === 'right').length;
+  // 空submit (まだ何も動かしてない) → やさしいヒント、ストリークは保持
+  if (right === 0) {
+    showSoftHint('クッキーを とってからね');
+    return;
+  }
+  const correct = (right === state.quizAnswer);
+  if (correct) {
+    state.quizDone = true;
+    onQuizSolved();
+    render();
+  } else {
+    onQuizWrong();
+  }
+}
+
+// 既存のtoast/hintを除去
+function clearToasts() {
+  document.querySelectorAll('.wrong-toast, .hint-toast').forEach(t => t.remove());
+}
+
+function showSoftHint(text) {
+  clearToasts();
+  // ボタンの連打を一時的にロック (穴9)
+  state.answerLock = true;
+  setTimeout(() => { state.answerLock = false; }, 900);
+  const t = document.createElement('div');
+  t.className = 'hint-toast';
+  t.textContent = text;
+  // 食べ物絵文字付きで親しみ
+  const e = state.theme || '🍪';
+  t.textContent = e + ' ' + text;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1500);
+  soundPickup(); // 軽い音
+}
+
+function onQuizWrong() {
+  // 穴9対策: 連打防止 + 既存トースト除去
+  clearToasts();
+  state.answerLock = true;
+  setTimeout(() => { state.answerLock = false; }, 1200);
+  // ストリークと金色をリセット
+  state.streak = 0;
+  document.querySelectorAll('.num-box.streak-on').forEach(b => b.classList.remove('streak-on'));
+  const streakEl = document.getElementById('streak-display');
+  streakEl.textContent = '';
+  streakEl.classList.remove('hot');
+  // 効果音と演出
+  soundWrong();
+  const f = document.getElementById('formula');
+  f.classList.remove('shake');
+  void f.offsetWidth; // reflow して再アニメ
+  f.classList.add('shake');
+  // トースト (新規1枚のみ)
+  const t = document.createElement('div');
+  t.className = 'wrong-toast';
+  t.textContent = 'もういちど かんがえてね';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1500);
+}
+
+function soundWrong() {
+  if (!state.soundOn || !audioCtx) return;
+  tone(330, 0.16, 'sine', 0.18, 0);
+  tone(247, 0.22, 'sine', 0.18, 0.14);
+}
+
+function onQuizSolved() {
+  state.streak++;
+  renderStreakDots();
+  soundCorrect();
+
+  // テスト: 3問連続でメニューに戻る・クリア登録
+  // れんしゅう: 3問連続でも演出だけ続けて次の問題へ
+  const isTest = state.mode === 'test';
+  const reachedThree = state.streak >= 3 && isTest;
+
+  if (reachedThree) {
+    // テスト合格! 数字を金色に → メニューに戻る
+    document.querySelectorAll('#formula .num-box').forEach(b => b.classList.add('streak-on'));
+    flashCelebration('🏆');
+    setTimeout(() => flashCelebration('✨'), 250);
+    setTimeout(() => flashCelebration('🎉'), 500);
+    spawnConfetti();
+    setTimeout(() => spawnConfetti(), 400);
+    // ファンファーレ
+    setTimeout(() => {
+      tone(523, 0.18, 'triangle', 0.22, 0);
+      tone(659, 0.18, 'triangle', 0.22, 0.18);
+      tone(784, 0.18, 'triangle', 0.22, 0.36);
+      tone(1047, 0.4, 'triangle', 0.24, 0.54);
+    }, 200);
+    // クリア登録 (キーは互換性のため quiz-N のまま)
+    state.cleared.add(`quiz-${state.total}`);
+    saveCleared();
+    // メニュー遷移
+    if (state.nextTimer) clearTimeout(state.nextTimer);
+    state.nextTimer = setTimeout(() => {
+      state.nextTimer = null;
+      goMenuAfterTest(state.total);
+    }, 3200);
+  } else {
+    // 通常のお祝い→次の問題
+    if (state.streak >= 3) {
+      // れんしゅうで3問以上連続: 金色を継続
+      document.querySelectorAll('#formula .num-box').forEach(b => b.classList.add('streak-on'));
+    }
+    flashCelebration(state.streak >= 3 ? '🔥' : '🎉');
+    spawnConfetti();
+    if (state.nextTimer) clearTimeout(state.nextTimer);
+    state.nextTimer = setTimeout(() => {
+      state.nextTimer = null;
+      setupQuiz();
+      state.quizDone = false;
+      render();
+    }, 1800);
+  }
+}
+
+function goMenuAfterTest(justClearedNum) {
+  // テスト合格でメニューに戻る (確認なし、自動)
+  state.streak = 0;
+  state.userInteracted = false;
+  state.quizDone = false;
+  state.selectedItemId = null;
+  state.lastQuizGiven = null;
+  if (state.nextTimer) { clearTimeout(state.nextTimer); state.nextTimer = null; }
+  if (dragging) {
+    const el = dragging.el;
+    el.classList.remove('dragging');
+    el.style.position = ''; el.style.left = ''; el.style.top = ''; el.style.zIndex = '';
+    dragging = null;
+  }
+  dragStart = null;
+  document.removeEventListener('pointermove', onPointerMove);
+  document.removeEventListener('pointerup', onPointerUp);
+  document.removeEventListener('pointercancel', onPointerUp);
+  speechSynthesis && speechSynthesis.cancel();
+
+  document.getElementById('game').classList.remove('active');
+  document.getElementById('menu').classList.add('active');
+  renderMenuCleared();
+
+  // 直前にクリアした数字をハイライトアニメ
+  if (typeof justClearedNum === 'number') {
+    const btn = document.querySelector(`#num-options [data-num="${justClearedNum}"]`);
+    if (btn) {
+      btn.classList.add('just-cleared');
+      setTimeout(() => btn.classList.remove('just-cleared'), 1800);
+    }
+  }
+}
+
+// ===== Drag + Tap (Pointer Events) =====
+// dragStart: pointerdown後の追跡情報(まだドラッグ確定前)
+// dragging: 動きしきい値を超えてドラッグ確定した状態
+// 短いタップ(動かない)はアイテム選択トグル → お皿クリックで移動
+let dragStart = null;
+let dragging = null;
+const TAP_THRESHOLD = 8; // px
+
+function onPointerDown(e) {
+  // 穴10対策: 正解確定後は次の問題が出るまで操作不能
+  if (state.quizDone) return;
+  // 穴4対策: 既にドラッグ中(=他の指で掴み中)なら無視
+  if (dragging || dragStart) return;
+  ensureAudio();
+  e.preventDefault();
+  const el = e.currentTarget;
+  const id = parseInt(el.dataset.id);
+  const item = state.items.find(i => i.id === id);
+  if (!item || item.locked) return;
+
+  const rect = el.getBoundingClientRect();
+  dragStart = {
+    id, el,
+    pointerId: e.pointerId,
+    startX: e.clientX,
+    startY: e.clientY,
+    grabX: e.clientX - rect.left,
+    grabY: e.clientY - rect.top
+  };
+
+  document.addEventListener('pointermove', onPointerMove);
+  document.addEventListener('pointerup', onPointerUp);
+  document.addEventListener('pointercancel', onPointerUp);
+}
+
+function beginActualDrag() {
+  // タップ→ドラッグ確定遷移
+  dragging = dragStart;
+  const el = dragging.el;
+  el.classList.add('dragging');
+  el.style.position = 'fixed';
+  el.style.zIndex = 1000;
+  // 既存のタップ選択は解除
+  state.selectedItemId = null;
+  document.querySelectorAll('.item.selected').forEach(i => i.classList.remove('selected'));
+  soundPickup();
+}
+
+function onPointerMove(e) {
+  if (!dragStart) return;
+  const dx = e.clientX - dragStart.startX;
+  const dy = e.clientY - dragStart.startY;
+  if (!dragging && Math.hypot(dx, dy) > TAP_THRESHOLD) {
+    beginActualDrag();
+  }
+  if (dragging) {
+    const el = dragging.el;
+    el.style.left = (e.clientX - dragging.grabX) + 'px';
+    el.style.top  = (e.clientY - dragging.grabY) + 'px';
+    document.querySelectorAll('.plate').forEach(p => p.classList.remove('drag-over'));
+    el.style.pointerEvents = 'none';
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    el.style.pointerEvents = '';
+    const plate = under && under.closest && under.closest('.plate');
+    if (plate && plateAcceptsDrop(plate)) plate.classList.add('drag-over');
+  }
+}
+
+function plateAcceptsDrop(plateEl) {
+  const name = plateEl.dataset.plate;
+  // テストのみ左皿は「おともだち(固定)」で新規ドロップ禁止。れんしゅうは自由
+  if (state.mode === 'test' && name === 'left') return false;
+  return true;
+}
+
+function onPointerUp(e) {
+  if (!dragStart) return;
+
+  if (dragging) {
+    // ドラッグ終了
+    const el = dragging.el;
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const plate = under && under.closest && under.closest('.plate');
+    document.querySelectorAll('.plate').forEach(p => p.classList.remove('drag-over'));
+
+    if (plate && plateAcceptsDrop(plate) && plate.dataset.plate) {
+      const item = state.items.find(i => i.id === dragging.id);
+      if (item && item.plate !== plate.dataset.plate) {
+        item.plate = plate.dataset.plate;
+        state.userInteracted = true;
+        soundDrop();
+      }
+    }
+    el.classList.remove('dragging');
+    el.style.position = '';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.zIndex = '';
+    dragging = null;
+  } else {
+    // タップとして処理 (穴11対策)
+    handleTap(dragStart.id);
+  }
+
+  dragStart = null;
+  document.removeEventListener('pointermove', onPointerMove);
+  document.removeEventListener('pointerup', onPointerUp);
+  document.removeEventListener('pointercancel', onPointerUp);
+  render();
+}
+
+function handleTap(id) {
+  if (state.selectedItemId === id) {
+    state.selectedItemId = null;
+  } else {
+    state.selectedItemId = id;
+    soundPickup();
+  }
+}
+
+// 皿クリック: 選択中のアイテムをそこへ移動
+function onPlateClick(e) {
+  if (state.quizDone) return;
+  if (state.selectedItemId == null) return;
+  // タップ可能アイテム上のクリックはアイテム側で処理済み(選択トグル)→ 重複しない
+  const itemEl = e.target.closest('.item');
+  if (itemEl && !itemEl.classList.contains('locked')) return;
+
+  const plateEl = e.currentTarget;
+  if (!plateAcceptsDrop(plateEl)) return;
+
+  const item = state.items.find(i => i.id === state.selectedItemId);
+  if (!item) { state.selectedItemId = null; render(); return; }
+  if (item.plate !== plateEl.dataset.plate) {
+    item.plate = plateEl.dataset.plate;
+    state.userInteracted = true;
+    soundDrop();
+  }
+  state.selectedItemId = null;
+  render();
+}
+
+// ===== Celebration =====
+function flashCelebration(emoji) {
+  const c = document.createElement('div');
+  c.className = 'celebrate';
+  c.textContent = emoji;
+  document.body.appendChild(c);
+  setTimeout(() => c.remove(), 1100);
+}
+function spawnConfetti() {
+  const emojis = ['🎉','✨','⭐','🌟','💖','🎊'];
+  for (let i = 0; i < 24; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    c.style.left = (Math.random() * 100) + 'vw';
+    c.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+    c.style.animationDelay = (Math.random() * 0.4) + 's';
+    c.style.animationDuration = (1.5 + Math.random()) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 2500);
+  }
+}
+
+// ===== Read aloud =====
+function readAloud() {
+  ensureAudio();
+  if (!('speechSynthesis' in window)) {
+    alert('このブラウザは よみあげに たいおうしていません');
+    return;
+  }
+  // 穴14対策: 発話中の連打を無視
+  if (state.readingNow) return;
+  const u = new SpeechSynthesisUtterance();
+  u.lang = 'ja-JP';
+  u.rate = 0.85;
+  u.pitch = 1.1;
+
+  const left = state.items.filter(i => i.plate === 'left').length;
+  const right = state.items.filter(i => i.plate === 'right').length;
+
+  if (state.mode === 'test' || state.mode === 'practice') {
+    u.text = `${state.total} は ${state.quizGiven} と ${right}`;
+  } else {
+    u.text = `${state.total} は ${left} と ${right}`;
+  }
+
+  state.readingNow = true;
+  const btn = document.querySelector('.read-btn');
+  if (btn) btn.disabled = true;
+  const release = () => {
+    state.readingNow = false;
+    if (btn) btn.disabled = false;
+  };
+  u.onend = release;
+  u.onerror = release;
+  // フォールバック: 最大8秒で強制解除
+  setTimeout(release, 8000);
+
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+// ===== Sound toggle =====
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  document.getElementById('sound-toggle').textContent = state.soundOn ? '🔊 おと' : '🔇 むおん';
+}
+
+// ===== Prevent context menu on long press (iOS/Android) =====
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest('.item') || e.target.closest('.plate')) e.preventDefault();
+});
+
+// ===== クリア記録のリセット (先生用、隠しボタン: タイトルを5回タップ) =====
+let titleTaps = 0;
+let titleTapTimer = null;
+document.querySelector('#menu h1')?.addEventListener('click', () => {
+  titleTaps++;
+  clearTimeout(titleTapTimer);
+  titleTapTimer = setTimeout(() => titleTaps = 0, 1500);
+  if (titleTaps >= 5) {
+    titleTaps = 0;
+    if (confirm('クリア きろくを ぜんぶ けしますか?')) {
+      state.cleared = new Set();
+      saveCleared();
+      renderMenuCleared();
+    }
+  }
+});
+
+// ===== 初期化: クリア記録をロード =====
+loadCleared();
+renderMenuCleared();
+</script>
+</body>
+</html>
