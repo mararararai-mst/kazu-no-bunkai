@@ -1348,11 +1348,8 @@ function readAloud() {
   const left = state.items.filter(i => i.plate === 'left').length;
   const right = state.items.filter(i => i.plate === 'right').length;
 
-  if (state.mode === 'test' || state.mode === 'practice') {
-    u.text = `${state.total} は ${state.quizGiven} と ${right}`;
-  } else {
-    u.text = `${state.total} は ${left} と ${right}`;
-  }
+  // 全モード共通: 実際のお皿(ひだり/みぎ)の数を読み上げる
+  u.text = `${state.total} は ${left} と ${right}`;
 
   state.readingNow = true;
   const btn = document.querySelector('.read-btn');
